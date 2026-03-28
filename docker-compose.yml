@@ -1,0 +1,29 @@
+# Lab: OWASP ModSecurity CRS (Nginx) in front of a sample backend.
+# Docs: STEP_03_WAF_Setup_and_Configuration.md
+# Image reference: https://github.com/coreruleset/modsecurity-crs-docker
+
+services:
+  backend:
+    image: nginxdemos/hello:plain-text
+    expose:
+      - "80"
+    restart: unless-stopped
+
+  waf:
+    image: owasp/modsecurity-crs:nginx
+    depends_on:
+      - backend
+    ports:
+      - "8080:8080"
+    environment:
+      # Reverse proxy target (Docker DNS service name)
+      BACKEND: http://backend:80
+      SERVER_NAME: localhost
+      # Start in log-only mode; switch to On after tuning (see Step 3 doc)
+      MODSEC_RULE_ENGINE: DetectionOnly
+      MODSEC_AUDIT_LOG_FORMAT: JSON
+      BLOCKING_PARANOIA: "1"
+      DETECTION_PARANOIA: "1"
+      ANOMALY_INBOUND: "5"
+      ANOMALY_OUTBOUND: "4"
+    restart: unless-stopped

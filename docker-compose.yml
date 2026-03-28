@@ -21,9 +21,18 @@ services:
       SERVER_NAME: localhost
       # Start in log-only mode; switch to On after tuning (see Step 3 doc)
       MODSEC_RULE_ENGINE: DetectionOnly
+      MODSEC_AUDIT_ENGINE: "On"
+      MODSEC_AUDIT_LOG: /var/log/modsec/modsec_audit.log
       MODSEC_AUDIT_LOG_FORMAT: JSON
+      ERRORLOG: /var/log/modsec/modsec_error.log
+      LOGLEVEL: warn
       BLOCKING_PARANOIA: "1"
       DETECTION_PARANOIA: "1"
       ANOMALY_INBOUND: "5"
       ANOMALY_OUTBOUND: "4"
+    volumes:
+      - ./configs/modsecurity/custom-before.conf:/opt/modsecurity/rules/before-crs/custom-before.conf:ro
+      - ./configs/modsecurity/custom-after.conf:/opt/modsecurity/rules/after-crs/custom-after.conf:ro
+      - ./configs/nginx-templates/setup.conf.template:/etc/nginx/templates/modsecurity.d/setup.conf.template:ro
+      - ./logs:/var/log/modsec
     restart: unless-stopped

@@ -1,4 +1,25 @@
+# Generated docs/temp files
 /doc_temp/*
+
+# ModSecurity runtime logs
 /logs/modsec_audit.log
 /logs/modsec_error.log
+
+# Performance test artifacts
 /performance/*-summary.json
+
+# Docker compose state
+**/docker-compose.override.yml
+
+# Local environment variables
+*.env
+
+# Editor/temp files
+*.swp
+*.swo
+*.idea/
+.vscode/
+
+# OS files
+Thumbs.db
+.DS_Store

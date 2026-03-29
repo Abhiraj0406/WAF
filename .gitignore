@@ -1,5 +1,25 @@
-/PROJECT_STEPS.md
-/STEP_01_Discovery_and_Kickoff.md
-/STEP_02_Architecture_Design.md
-/STEP_03_WAF_Setup_and_Configuration.md
-/WAF_Project_Master_Document.md
+# Generated docs/temp files
+/doc_temp/*
+
+# ModSecurity runtime logs
+/logs/modsec_audit.log
+/logs/modsec_error.log
+
+# Performance test artifacts
+/performance/*-summary.json
+
+# Docker compose state
+**/docker-compose.override.yml
+
+# Local environment variables
+*.env
+
+# Editor/temp files
+*.swp
+*.swo
+*.idea/
+.vscode/
+
+# OS files
+Thumbs.db
+.DS_Store

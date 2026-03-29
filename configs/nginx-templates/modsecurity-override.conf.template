@@ -1,0 +1,67 @@
+# Local ModSecurity overrides and custom rules for this project.
+# This file is injected via the image's supported template mechanism.
+
+SecAction \
+  "id:900001,\
+  phase:1,\
+  pass,\
+  nolog,\
+  setvar:tx.allowed_methods=GET HEAD POST OPTIONS PUT DELETE PATCH"
+
+SecAction \
+  "id:900002,\
+  phase:1,\
+  pass,\
+  nolog,\
+  setvar:tx.allowed_request_content_type=|application/json| |application/x-www-form-urlencoded| |multipart/form-data| |text/plain| |application/xml|"
+
+SecRule ARGS:waf_probe "@streq 1" \
+  "id:100090,\
+  phase:2,\
+  deny,\
+  status:403,\
+  log,\
+  msg:'Local WAF verification probe matched',\
+  tag:'verification:probe',\
+  severity:'NOTICE'"
+
+SecRule REQUEST_URI "@rx (?i)(?:/admin|/login|/auth|/api)" \
+  "id:100100,\
+  phase:1,\
+  pass,\
+  log,\
+  msg:'Monitored high-value endpoint requested',\
+  tag:'app:high_value_endpoint',\
+  severity:'NOTICE'"
+
+SecRule ARGS|ARGS_NAMES|REQUEST_BODY "@rx (?i)\\b(?:union(?:\\s+all)?\\s+select|select\\s+.+\\s+from|insert\\s+into|drop\\s+table|or\\s+1=1)\\b" \
+  "id:100110,\
+  phase:2,\
+  deny,\
+  status:403,\
+  log,\
+  msg:'Custom SQL injection pattern detected',\
+  tag:'attack:sqli',\
+  severity:'CRITICAL'"
+
+SecRule ARGS|REQUEST_BODY "@rx (?i)(?:<script\\b|javascript:|onerror\\s*=|onload\\s*=|<img\\b[^>]+src=)" \
+  "id:100120,\
+  phase:2,\
+  deny,\
+  status:403,\
+  log,\
+  msg:'Custom XSS pattern detected',\
+  tag:'attack:xss',\
+  severity:'CRITICAL'"
+
+SecRule REQUEST_METHOD "@within POST PUT PATCH DELETE" \
+  "id:100130,\
+  phase:1,\
+  chain,\
+  pass,\
+  log,\
+  msg:'State-changing request missing Origin and Referer headers',\
+  tag:'attack:csrf',\
+  severity:'WARNING'"
+    SecRule &REQUEST_HEADERS:Origin "@eq 0" "chain"
+    SecRule &REQUEST_HEADERS:Referer "@eq 0"

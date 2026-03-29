@@ -1,0 +1,29 @@
+groups:
+  - name: waf-monitoring
+    rules:
+      - alert: WafExporterDown
+        expr: up{job="nginx-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: WAF metrics exporter is down
+          description: Prometheus cannot scrape the nginx exporter for the WAF.
+
+      - alert: WafHighRequestRate
+        expr: rate(nginx_http_requests_total[1m]) > 20
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: WAF request rate is high
+          description: Request rate on the WAF exceeded the lab threshold.
+
+      - alert: WafHighActiveConnections
+        expr: nginx_connections_active > 50
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: WAF active connections are high
+          description: Active WAF connections exceeded the lab threshold.

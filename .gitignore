@@ -1,1 +1,4 @@
 /doc_temp/*
+/logs/modsec_audit.log
+/logs/modsec_error.log
+/performance/*-summary.json

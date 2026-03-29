@@ -14,13 +14,13 @@ services:
     depends_on:
       - backend
     ports:
-      - "8080:8080"
+      - "${WAF_PORT:-8088}:8080"
     environment:
       # Reverse proxy target (Docker DNS service name)
       BACKEND: http://backend:80
       SERVER_NAME: localhost
       # Start in log-only mode; switch to On after tuning (see Step 3 doc)
-      MODSEC_RULE_ENGINE: DetectionOnly
+      MODSEC_RULE_ENGINE: ${MODSEC_RULE_ENGINE:-DetectionOnly}
       MODSEC_AUDIT_ENGINE: "On"
       MODSEC_AUDIT_LOG: /var/log/modsec/modsec_audit.log
       MODSEC_AUDIT_LOG_FORMAT: JSON
@@ -31,8 +31,59 @@ services:
       ANOMALY_INBOUND: "5"
       ANOMALY_OUTBOUND: "4"
     volumes:
-      - ./configs/modsecurity/custom-before.conf:/opt/modsecurity/rules/before-crs/custom-before.conf:ro
-      - ./configs/modsecurity/custom-after.conf:/opt/modsecurity/rules/after-crs/custom-after.conf:ro
-      - ./configs/nginx-templates/setup.conf.template:/etc/nginx/templates/modsecurity.d/setup.conf.template:ro
+      - ./configs/nginx-templates/modsecurity-override.conf.template:/etc/nginx/templates/modsecurity.d/modsecurity-override.conf.template:ro
+      - ./configs/nginx-templates/location_common.conf.template:/etc/nginx/templates/includes/location_common.conf.template:ro
       - ./logs:/var/log/modsec
     restart: unless-stopped
+
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter
+    depends_on:
+      - waf
+    command:
+      - --nginx.scrape-uri=http://waf:8080/metrics/nginx
+    ports:
+      - "${EXPORTER_PORT:-9113}:9113"
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus
+    depends_on:
+      - nginx-exporter
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./configs/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./configs/monitoring/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana-oss
+    depends_on:
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-change-me-now}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./configs/monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./configs/monitoring/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./configs/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    restart: unless-stopped
+
+  k6:
+    image: grafana/k6
+    profiles:
+      - perf
+    depends_on:
+      - waf
+      - backend
+    volumes:
+      - ./performance:/scripts
+    working_dir: /scripts
+
+volumes:
+  grafana-data:
